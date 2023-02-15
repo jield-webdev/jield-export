@@ -35,27 +35,35 @@ final class Column
         Assert::inArray($type, $this->types);
     }
 
-    public function addRow(int|string|float|null|bool|DateTime|DateTimeImmutable $data): void
+    public function addRow(int|string|float|null|bool|DateTime|DateTimeImmutable $data, $allowNull = false): void
     {
+        if (!$allowNull && $data === null) {
+            throw new \InvalidArgumentException('Data cannot be null');
+        }
+
         switch ($this->type) {
             case self::TYPE_INTEGER:
-                Assert::integer($data);
+                !$allowNull && Assert::integer($data);
                 break;
             case self::TYPE_STRING:
                 $data = TextHelpers::beautifyTextValue($data);
                 break;
             case self::TYPE_BOOLEAN:
                 Assert::boolean($data);
-                $data       = $data ? 1 : null;
+                $data       = $data === true ? 1 : null;
                 $this->type = self::TYPE_INTEGER; //Set to integer
                 break;
             case self::TYPE_DATE:
-                Assert::isInstanceOf($data, DateTimeInterface::class);
-                $data = $data instanceof DateTime ? $data : DateTime::createFromImmutable($data);
+                !$allowNull && Assert::isInstanceOf($data, DateTimeInterface::class);
+                if (null !== $data) {
+                    $data = $data instanceof DateTime ? $data : DateTime::createFromImmutable($data);
+                }
                 break;
             case self::TYPE_TIME:
-                Assert::implementsInterface($data, DateTimeInterface::class);
-                $data = $data->format('H:i');
+                !$allowNull && Assert::implementsInterface($data, DateTimeInterface::class);
+                if (null !== $data) {
+                    $data = $data->format('H:i');
+                }
                 break;
         }
         $this->data[] = $data;
