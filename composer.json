@@ -1,0 +1,78 @@
+{
+  "name": "jield-webdev/jield-export",
+  "description": "This repo can be used to export database objects (using Doctrine) to External data formats (Excel/Parquet/CSV)",
+  "type": "library",
+  "keywords": [
+    "laminas",
+    "doctrine",
+    "export",
+    "parquet",
+    "excel"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/jield-webdev/jield-export",
+  "authors": [
+    {
+      "name": "Johan van der Heide",
+      "email": "info@jield.nl",
+      "homepage": "https://jield.nl"
+    }
+  ],
+  "require": {
+    "php": "~8.1.0 || ~8.2.0",
+    "laminas/laminas-mvc": "^3.6.0",
+    "microsoft/azure-storage-blob": "^1.5.4",
+    "doctrine/orm": "^2",
+    "codename/parquet": "^0.7",
+    "phpoffice/phpspreadsheet": "^1.27",
+    "jetbrains/phpstorm-attributes": "^1.0"
+  },
+  "require-dev": {
+    "iteaoffice/testing": "^3.5-dev"
+  },
+  "autoload": {
+    "psr-4": {
+      "Jield\\Export\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Jield\\ExportTest\\": "test"
+    }
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "optimize-autoloader": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "composer/package-versions-deprecated": true
+    }
+  },
+  "extra": {
+    "laminas": {
+      "module": "Jield\\Export\\Module"
+    },
+    "branch-alias": {
+      "dev-main": "1.0-dev",
+      "dev-develop": "1.1-dev"
+    }
+  },
+  "scripts": {
+    "check": [
+      "@php-lint",
+      "@phpstan",
+      "@cs",
+      "@test"
+    ],
+    "fix": [
+      "@cbf",
+      "@cs-fix"
+    ],
+    "php-lint": "./vendor/bin/parallel-lint src",
+    "phpstan": "./vendor/bin/phpstan analyse src/ --level=1 --xdebug --memory-limit=2G",
+    "cs": "./vendor/bin/phpcs -n -p --standard=PSR2 --extensions=php,twig src",
+    "cbf": "./vendor/bin/phpcbf src --standard=PSR2",
+    "cs-fix": "./vendor/bin/php-cs-fixer fix -v src",
+    "test": "./vendor/bin/phpunit"
+  }
+}
