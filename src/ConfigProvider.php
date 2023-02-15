@@ -4,6 +4,7 @@ namespace Jield\Export;
 
 use Jield\Export\Command\UpdateIndex;
 use Jield\Export\Factory\ConsoleServiceFactory;
+use Jield\Export\Options\ModuleOptions;
 use Jield\Export\Service\ConsoleService;
 use Laminas\ServiceManager\AbstractFactory\ConfigAbstractFactory;
 
@@ -32,6 +33,7 @@ final class ConfigProvider
         return [
             'factories' => [
                 ConsoleService::class => ConsoleServiceFactory::class,
+                ModuleOptions::class  => Factory\ModuleOptionsFactory::class,
                 UpdateIndex::class    => ConfigAbstractFactory::class
             ],
         ];
