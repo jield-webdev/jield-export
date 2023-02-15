@@ -28,14 +28,14 @@ class ModuleOptions extends AbstractOptions
         $this->azureBlobStorageConnectionString = $azureBlobStorageConnectionString;
     }
 
-    public function getEntities(): array
-    {
-        return $this->entities;
-    }
-
     public function getBlobContainer(): string
     {
         return $this->blobContainer;
+    }
+
+    public function setBlobContainer(string $blobContainer): void
+    {
+        $this->blobContainer = $blobContainer;
     }
 
     public function getParquetFolder(): string
@@ -43,9 +43,28 @@ class ModuleOptions extends AbstractOptions
         return $this->parquetFolder;
     }
 
+    public function setParquetFolder(string $parquetFolder): void
+    {
+        $this->parquetFolder = $parquetFolder;
+    }
+
     public function getExcelFolder(): string
     {
         return $this->excelFolder;
     }
 
+    public function setExcelFolder(string $excelFolder): void
+    {
+        $this->excelFolder = $excelFolder;
+    }
+
+    public function getEntities(): array
+    {
+        return $this->entities;
+    }
+
+    public function setEntities(array $entities): void
+    {
+        $this->entities = $entities;
+    }
 }

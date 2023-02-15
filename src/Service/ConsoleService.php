@@ -23,7 +23,7 @@ class ConsoleService
 {
     private array $entities = [];
 
-    protected readonly BlobRestProxy $blobClient;
+    protected BlobRestProxy $blobClient;
 
     public function __construct(
         private readonly ContainerInterface $container,

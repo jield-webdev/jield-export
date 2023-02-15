@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class UpdateIndex extends Command
 {
     /** @var string */
-    protected static $defaultName = 'export:test';
+    protected static $defaultName = 'export:update-index';
 
     public function __construct(private readonly ConsoleService $consoleService)
     {
@@ -28,7 +28,7 @@ final class UpdateIndex extends Command
         $cores = implode(
             separator: ', ',
             array: array_merge(
-                array_keys(array: $this->consoleService->getCores()),
+                array_keys(array: $this->consoleService->getEntities()),
                 ['all']
             )
         );
@@ -51,7 +51,7 @@ final class UpdateIndex extends Command
 
         $output->writeln(messages: $startMessage);
 
-        $this->consoleService->resetIndex(output: $output, index: $index, clearIndex: $reset);
+        $this->consoleService->resetIndex(output: $output, index: $index);
 
         $output->writeln(messages: $endMessage);
 
