@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Jield\Export\Columns;
 
-use Jield\Search\Entity\HasSearchInterface;
-use Solarium\QueryType\Update\Query\Document;
+use Jield\Export\ValueObject\Column;
 
 interface ColumnsHelperInterface
 {
+    /**
+     * @return array<Column>
+     */
     public function getColumns(): array;
+
+    public function getName(): string;
 }
