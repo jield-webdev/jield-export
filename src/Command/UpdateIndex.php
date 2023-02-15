@@ -51,7 +51,7 @@ final class UpdateIndex extends Command
 
         $output->writeln(messages: $startMessage);
 
-        $this->consoleService->resetIndex(output: $output, index: $index);
+        $this->consoleService->sendIndex(output: $output, index: $index);
 
         $output->writeln(messages: $endMessage);
 

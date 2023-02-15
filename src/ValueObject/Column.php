@@ -22,7 +22,7 @@ final class Column
 
     public function __construct(
         private readonly string $columnName,
-        private readonly string $type,
+        private readonly string $type = self::TYPE_STRING,
         private array $data = []
     ) {
         Assert::inArray($type, $this->types);

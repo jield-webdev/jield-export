@@ -7,6 +7,7 @@ namespace Jield\Export\Service;
 use codename\parquet\data\DataColumn;
 use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
+use InvalidArgumentException;
 use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Entity\HasExportInterface;
 use Jield\Export\Options\ModuleOptions;
@@ -30,19 +31,19 @@ class ConsoleService
         private readonly ModuleOptions $moduleOptions
     ) {
         //Do an init check
-        foreach ($this->moduleOptions->getEntities() as $key => $service) {
-            Assert::isInstanceOf(value: new $service['entity'](), class: HasExportInterface::class);
+        foreach ($this->moduleOptions->getEntities() as $key => $entityName) {
+            Assert::isInstanceOf(value: new $entityName(), class: HasExportInterface::class);
 
-            $this->entities[$key] = $service;
+            $this->entities[$key] = $entityName;
         }
     }
 
-    public function resetIndex(OutputInterface $output, string $index): void
+    public function sendIndex(OutputInterface $output, string $index): void
     {
         if ($index === 'all') {
-            foreach ($this->entities as $service) {
+            foreach ($this->entities as $entityName) {
                 /** @var HasExportInterface $entity */
-                $entity = new $service['entity']();
+                $entity = new $entityName();
 
                 /** @var ColumnsHelperInterface $createColumnsClass */
                 $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
@@ -62,12 +63,13 @@ class ConsoleService
         $output->writeln(messages: sprintf('<info>Updating index %s</info>', $index));
 
         /** @var HasExportInterface $entity */
-        $entity = new $this->entities[$index]['entity']();
+        $entity = new $this->entities[$index]();
 
         /** @var ColumnsHelperInterface $createColumnsClass */
         $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
 
         $this->createParquetAndCreateBlob($createColumnsClass);
+        $this->createExcel($createColumnsClass);
     }
 
     protected function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper): void
@@ -139,7 +141,7 @@ class ConsoleService
         $folder = match ($type) {
             'parquet' => $this->moduleOptions->getParquetFolder(),
             'excel' => $this->moduleOptions->getExcelFolder(),
-            default => throw new \InvalidArgumentException('Not a valid extension')
+            default => throw new InvalidArgumentException('Not a valid extension')
         };
 
         return sprintf('%s/%s.%s', $folder, $name, $type === 'parquet' ? 'parquet' : 'xlsx');
