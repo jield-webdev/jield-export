@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class UpdateIndex extends Command
 {
     /** @var string */
-    protected static $defaultName = 'search:update-index';
+    protected static $defaultName = 'export:test';
 
     public function __construct(private readonly ConsoleService $consoleService)
     {

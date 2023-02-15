@@ -32,6 +32,7 @@ final class ConfigProvider
         return [
             'factories' => [
                 ConsoleService::class => ConsoleServiceFactory::class,
+                UpdateIndex::class    => ConfigAbstractFactory::class
             ],
         ];
     }
@@ -39,7 +40,9 @@ final class ConfigProvider
     public function getConfigAbstractFactory(): array
     {
         return [
-
+            UpdateIndex::class => [
+                ConsoleService::class,
+            ],
         ];
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jield\Export;
+namespace Jield\Export\Options;
 
 use Laminas\Stdlib\AbstractOptions;
 
