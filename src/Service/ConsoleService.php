@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Entity\HasExportInterface;
 use Jield\Export\Options\ModuleOptions;
+use Jield\Export\ValueObject\Column;
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -38,9 +39,9 @@ class ConsoleService
         }
     }
 
-    public function sendIndex(OutputInterface $output, string $index): void
+    public function sendEntity(OutputInterface $output, string $entity): void
     {
-        if ($index === 'all') {
+        if ($entity === 'all') {
             foreach ($this->entities as $entityName) {
                 /** @var HasExportInterface $entity */
                 $entity = new $entityName();
@@ -54,19 +55,19 @@ class ConsoleService
             return;
         }
 
-        if (!isset($this->entities[$index])) {
-            $output->writeln(messages: sprintf('<error>Index %s not found</error>', $index));
+        if (!isset($this->entities[$entity])) {
+            $output->writeln(messages: sprintf('<error>Entity %s not found</error>', $entity));
 
             return;
         }
 
-        $output->writeln(messages: sprintf('<info>Updating index %s</info>', $index));
+        $output->writeln(messages: sprintf('<info>Updating entity %s</info>', $entity));
 
-        /** @var HasExportInterface $entity */
-        $entity = new $this->entities[$index]();
+        /** @var HasExportInterface $entityObject */
+        $entityObject = new $this->entities[$entity]();
 
         /** @var ColumnsHelperInterface $createColumnsClass */
-        $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
+        $createColumnsClass = $this->container->get($entityObject->getCreateExportColumnsClass());
 
         $this->createParquetAndCreateBlob($createColumnsClass);
         $this->createExcel($createColumnsClass);
@@ -75,13 +76,13 @@ class ConsoleService
     protected function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper): void
     {
         $fields = array_map(
-            callback: static fn (DataColumn $column) => $column->getField(),
+            callback: static fn (Column $column) => $column->toParquetColumn()->getField(),
             array: $columnsHelper->getColumns()
         );
 
         $schema = new Schema(fields: $fields);
 
-        $fileName      = $this->generateTempFileName(name: $columnsHelper->getName(), type: 'parquet');
+        $fileName      = $this->generateTempFileName(name: $columnsHelper->getName());
         $fileStream    = fopen(filename: $fileName, mode: 'wb+');
         $parquetWriter = new ParquetWriter(schema: $schema, output: $fileStream);
 
@@ -95,7 +96,7 @@ class ConsoleService
 
         $this->getBlobClient()->createBlockBlob(
             container: 'dropzone',
-            blob: $this->generateBlobName(name: $columnsHelper->getName(), type: 'parquet'),
+            blob: $this->generateBlobName(name: $columnsHelper->getName()),
             content: file_get_contents(filename: $fileName)
         );
     }
@@ -155,6 +156,10 @@ class ConsoleService
     private function getBlobClient(): BlobRestProxy
     {
         if (!isset($this->blobClient)) {
+            if (empty($this->moduleOptions->getAzureBlobStorageConnectionString())) {
+                throw new InvalidArgumentException('Azure Blob Storage Connection String is empty');
+            }
+
             $this->blobClient = BlobRestProxy::createBlobService(
                 connectionString: $this->moduleOptions->getAzureBlobStorageConnectionString()
             );

@@ -10,6 +10,7 @@ use codename\parquet\data\DateTimeDataField;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeInterface;
+use InvalidArgumentException;
 use Jield\Export\Helper\TextHelpers;
 use Webmozart\Assert\Assert;
 
@@ -21,6 +22,8 @@ final class Column
     public const TYPE_TIME = 'time';
     public const TYPE_BOOLEAN = 'boolean';
 
+    private array $data = [];
+
     public array $types = [
         self::TYPE_STRING,
         self::TYPE_INTEGER,
@@ -30,39 +33,41 @@ final class Column
     public function __construct(
         private readonly string $columnName,
         private string $type = self::TYPE_STRING,
-        private array $data = []
+        private readonly bool $isNullable = true
     ) {
-        Assert::inArray($type, $this->types);
+        Assert::inArray(value: $type, values: $this->types);
     }
 
-    public function addRow(int|string|float|null|bool|DateTime|DateTimeImmutable $data, $allowNull = false): void
+    public function addRow(int|string|float|null|bool|DateTime|DateTimeImmutable $data): void
     {
-        if (!$allowNull && $data === null) {
-            throw new \InvalidArgumentException('Data cannot be null');
+        if (!$this->isNullable && $data === null) {
+            throw new InvalidArgumentException(
+                message: 'Data cannot be null, column: ' . $this->columnName . ' type: ' . $this->type . ' is null'
+            );
         }
 
         switch ($this->type) {
             case self::TYPE_INTEGER:
-                !$allowNull && Assert::integer($data);
+                !$this->isNullable && Assert::integer(value: $data);
                 break;
             case self::TYPE_STRING:
-                $data = TextHelpers::beautifyTextValue($data);
+                $data = TextHelpers::beautifyTextValue(value: $data);
                 break;
             case self::TYPE_BOOLEAN:
-                Assert::boolean($data);
+                Assert::boolean(value: $data);
                 $data       = $data === true ? 1 : null;
                 $this->type = self::TYPE_INTEGER; //Set to integer
                 break;
             case self::TYPE_DATE:
-                !$allowNull && Assert::isInstanceOf($data, DateTimeInterface::class);
+                !$this->isNullable && Assert::isInstanceOf(value: $data, class: DateTimeInterface::class);
                 if (null !== $data) {
-                    $data = $data instanceof DateTime ? $data : DateTime::createFromImmutable($data);
+                    $data = $data instanceof DateTime ? $data : DateTime::createFromImmutable(object: $data);
                 }
                 break;
             case self::TYPE_TIME:
-                !$allowNull && Assert::implementsInterface($data, DateTimeInterface::class);
+                !$this->isNullable && Assert::implementsInterface(value: $data, interface: DateTimeInterface::class);
                 if (null !== $data) {
-                    $data = $data->format('H:i');
+                    $data = $data->format(format: 'H:i');
                 }
                 break;
         }

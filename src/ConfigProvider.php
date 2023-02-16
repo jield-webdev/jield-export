@@ -2,7 +2,8 @@
 
 namespace Jield\Export;
 
-use Jield\Export\Command\UpdateIndex;
+use Jield\Export\Command\ListEntities;
+use Jield\Export\Command\SendEntity;
 use Jield\Export\Factory\ConsoleServiceFactory;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\Service\ConsoleService;
@@ -23,7 +24,8 @@ final class ConfigProvider
     {
         return [
             'commands' => [
-                'export:send' => UpdateIndex::class,
+                'export:send' => SendEntity::class,
+                'export:list' => ListEntities::class,
             ]
         ];
     }
@@ -34,7 +36,8 @@ final class ConfigProvider
             'factories' => [
                 ConsoleService::class => ConsoleServiceFactory::class,
                 ModuleOptions::class  => Factory\ModuleOptionsFactory::class,
-                UpdateIndex::class    => ConfigAbstractFactory::class
+                SendEntity::class     => ConfigAbstractFactory::class,
+                ListEntities::class   => ConfigAbstractFactory::class
             ],
         ];
     }
@@ -42,7 +45,10 @@ final class ConfigProvider
     public function getConfigAbstractFactory(): array
     {
         return [
-            UpdateIndex::class => [
+            SendEntity::class   => [
+                ConsoleService::class,
+            ],
+            ListEntities::class => [
                 ConsoleService::class,
             ],
         ];

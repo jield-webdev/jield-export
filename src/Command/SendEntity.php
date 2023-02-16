@@ -10,10 +10,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-final class UpdateIndex extends Command
+final class SendEntity extends Command
 {
     /** @var string */
-    protected static $defaultName = 'export:update-index';
+    protected static $defaultName = 'export:send';
 
     public function __construct(private readonly ConsoleService $consoleService)
     {
@@ -23,7 +23,6 @@ final class UpdateIndex extends Command
     protected function configure(): void
     {
         $this->setName(name: self::$defaultName);
-        $this->addOption(name: 'reset', shortcut: 'r', mode: InputOption::VALUE_NONE, description: 'Reset index');
 
         $cores = implode(
             separator: ', ',
@@ -34,7 +33,7 @@ final class UpdateIndex extends Command
         );
 
         $this->addArgument(
-            name: 'index',
+            name: 'entity',
             mode: InputOption::VALUE_REQUIRED,
             description: $cores,
             default: 'all'
@@ -43,15 +42,14 @@ final class UpdateIndex extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $index = $input->getArgument(name: 'index');
-        $reset = $input->getOption(name: 'reset');
+        $entity = $input->getArgument(name: 'entity');
 
-        $startMessage = sprintf("<info>%s the index of %s</info>", $reset ? 'Reset' : 'Update', $index);
-        $endMessage   = sprintf("<info>%s the index of %s completed</info>", $reset ? 'Reset' : 'Update', $index);
+        $startMessage = sprintf("<info>Send entity %s</info>", $entity);
+        $endMessage   = sprintf("<info>Sending %s completed</info>", $entity);
 
         $output->writeln(messages: $startMessage);
 
-        $this->consoleService->sendIndex(output: $output, index: $index);
+        $this->consoleService->sendEntity(output: $output, entity: $entity);
 
         $output->writeln(messages: $endMessage);
 
