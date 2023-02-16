@@ -8,6 +8,7 @@ use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
 use InvalidArgumentException;
 use Jield\Export\Columns\ColumnsHelperInterface;
+use Jield\Export\Columns\EntityColumns;
 use Jield\Export\Entity\HasExportInterface;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\ValueObject\Column;
@@ -42,13 +43,7 @@ class ConsoleService
     {
         if ($entity === 'all') {
             foreach ($this->entities as $entityName) {
-                /** @var HasExportInterface $entity */
-                $entity = new $entityName();
-
-                /** @var ColumnsHelperInterface $createColumnsClass */
-                $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
-
-                $this->createParquetAndCreateBlob($createColumnsClass);
+                $this->handleEntity(entityName: $entityName);
             }
 
             return;
@@ -62,17 +57,27 @@ class ConsoleService
 
         $output->writeln(messages: sprintf('<info>Updating entity %s</info>', $entity));
 
-        /** @var HasExportInterface $entityObject */
-        $entityObject = new $this->entities[$entity]();
+        $this->handleEntity(entityName: $this->entities[$entity]);
+    }
 
-        /** @var ColumnsHelperInterface $createColumnsClass */
-        $createColumnsClass = $this->container->get($entityObject->getCreateExportColumnsClass());
+    private function handleEntity(string $entityName): void
+    {
+        /** @var HasExportInterface $entity */
+        $entity = new $entityName();
+
+        /** @var EntityColumns $createColumnsClass */
+        $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
 
         $this->createParquetAndCreateBlob($createColumnsClass);
         $this->createExcel($createColumnsClass);
+
+        //Check if the entity has dependencies
+        foreach ($createColumnsClass->getDependencies() as $dependency) {
+            $this->handleEntity($dependency);
+        }
     }
 
-    protected function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper): void
+    private function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper): void
     {
         $fields = array_map(
             callback: static fn (Column $column) => $column->toParquetColumn()->getField(),
@@ -100,7 +105,7 @@ class ConsoleService
         );
     }
 
-    protected function createExcel(ColumnsHelperInterface $columnsHelper): void
+    private function createExcel(ColumnsHelperInterface $columnsHelper): void
     {
         $spreadsheet = new Spreadsheet();
         $worksheet   = $spreadsheet->getActiveSheet();
