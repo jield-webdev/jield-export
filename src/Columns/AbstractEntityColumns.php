@@ -9,7 +9,7 @@ use Jield\Export\ValueObject\Column;
 
 abstract class AbstractEntityColumns implements ColumnsHelperInterface
 {
-    private string $name = 'dimentity';
+    protected string $name = 'dimentity';
 
     public function __construct(protected readonly EntityManager $entityManager)
     {
