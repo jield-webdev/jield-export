@@ -14,4 +14,6 @@ interface ColumnsHelperInterface
     public function getColumns(): array;
 
     public function getName(): string;
+
+    public function getDependencies(): string;
 }
