@@ -25,5 +25,13 @@ abstract class AbstractEntityColumns implements ColumnsHelperInterface
      */
     abstract public function getColumns(): array;
 
-    abstract public function getDependencies(): array;
+    /**
+     * Default empty array.
+     *
+     * @return array<string, string>
+     */
+    public function getDependencies(): array
+    {
+        return [];
+    }
 }
