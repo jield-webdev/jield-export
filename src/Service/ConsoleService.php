@@ -7,9 +7,8 @@ namespace Jield\Export\Service;
 use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
 use InvalidArgumentException;
-use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Columns\AbstractEntityColumns;
-use Jield\Export\Entity\HasExportInterface;
+use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\ValueObject\Column;
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
@@ -19,7 +18,6 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Webmozart\Assert\Assert;
 
 class ConsoleService
 {
@@ -33,8 +31,6 @@ class ConsoleService
     ) {
         //Do an init check
         foreach ($this->moduleOptions->getEntities() as $key => $entityName) {
-            Assert::isInstanceOf(value: new $entityName(), class: HasExportInterface::class);
-
             $this->entities[$key] = $entityName;
         }
     }
@@ -62,11 +58,8 @@ class ConsoleService
 
     private function handleEntity(string $entityName): void
     {
-        /** @var HasExportInterface $entity */
-        $entity = new $entityName();
-
         /** @var AbstractEntityColumns $createColumnsClass */
-        $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
+        $createColumnsClass = $this->container->get($entityName);
 
         $this->createParquetAndCreateBlob($createColumnsClass);
         $this->createExcel($createColumnsClass);
