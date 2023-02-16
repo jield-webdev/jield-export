@@ -7,7 +7,7 @@ namespace Jield\Export\Columns;
 use Doctrine\ORM\EntityManager;
 use Jield\Export\ValueObject\Column;
 
-abstract class EntityColumns implements ColumnsHelperInterface
+abstract class AbstractEntityColumns implements ColumnsHelperInterface
 {
     private string $name = 'dimentity';
 

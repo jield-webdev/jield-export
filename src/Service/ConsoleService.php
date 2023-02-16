@@ -8,7 +8,7 @@ use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
 use InvalidArgumentException;
 use Jield\Export\Columns\ColumnsHelperInterface;
-use Jield\Export\Columns\EntityColumns;
+use Jield\Export\Columns\AbstractEntityColumns;
 use Jield\Export\Entity\HasExportInterface;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\ValueObject\Column;
@@ -65,7 +65,7 @@ class ConsoleService
         /** @var HasExportInterface $entity */
         $entity = new $entityName();
 
-        /** @var EntityColumns $createColumnsClass */
+        /** @var AbstractEntityColumns $createColumnsClass */
         $createColumnsClass = $this->container->get($entity->getCreateExportColumnsClass());
 
         $this->createParquetAndCreateBlob($createColumnsClass);
