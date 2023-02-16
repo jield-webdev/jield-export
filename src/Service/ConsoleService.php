@@ -6,6 +6,7 @@ namespace Jield\Export\Service;
 
 use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
+use Doctrine\ORM\EntityManager;
 use InvalidArgumentException;
 use Jield\Export\Columns\AbstractEntityColumns;
 use Jield\Export\Columns\ColumnsHelperInterface;
@@ -30,16 +31,16 @@ class ConsoleService
         private readonly ModuleOptions $moduleOptions
     ) {
         //Do an init check
-        foreach ($this->moduleOptions->getEntities() as $key => $entityName) {
-            $this->entities[$key] = $entityName;
+        foreach ($this->moduleOptions->getEntities() as $key => $entityColumnsName) {
+            $this->entities[$key] = $entityColumnsName;
         }
     }
 
     public function sendEntity(OutputInterface $output, string $entity): void
     {
         if ($entity === 'all') {
-            foreach ($this->entities as $entityName) {
-                $this->handleEntity(entityName: $entityName);
+            foreach ($this->entities as $entityColumnsName) {
+                $this->handleEntity(entityColumnsName: $entityColumnsName);
             }
 
             return;
@@ -53,13 +54,19 @@ class ConsoleService
 
         $output->writeln(messages: sprintf('<info>Updating entity %s</info>', $entity));
 
-        $this->handleEntity(entityName: $this->entities[$entity]);
+        $this->handleEntity(entityColumnsName: $this->entities[$entity]);
     }
 
-    private function handleEntity(string $entityName): void
+    private function handleEntity(string $entityColumnsName): void
     {
-        /** @var AbstractEntityColumns $createColumnsClass */
-        $createColumnsClass = $this->container->get($entityName);
+        //Try to grab the entity from the container, otherwise instantiate it
+        if ($this->container->has($entityColumnsName)) {
+            /** @var AbstractEntityColumns $createColumnsClass */
+            $createColumnsClass = $this->container->get($entityColumnsName);
+        } else {
+            /** @var AbstractEntityColumns $createColumnsClass */
+            $createColumnsClass = new $entityColumnsName($this->container->get(EntityManager::class));
+        }
 
         $this->createParquetAndCreateBlob($createColumnsClass);
         $this->createExcel($createColumnsClass);
