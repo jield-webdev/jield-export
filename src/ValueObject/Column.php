@@ -28,12 +28,14 @@ final class Column
         self::TYPE_STRING,
         self::TYPE_INTEGER,
         self::TYPE_DATE,
+        self::TYPE_TIME,
+        self::TYPE_BOOLEAN,
     ];
 
     public function __construct(
         private readonly string $columnName,
         private string $type = self::TYPE_STRING,
-        private readonly bool $isNullable = true
+        private bool $isNullable = true
     ) {
         Assert::inArray(value: $type, values: $this->types);
     }
@@ -48,15 +50,24 @@ final class Column
 
         switch ($this->type) {
             case self::TYPE_INTEGER:
-                !$this->isNullable && Assert::integer(value: $data);
+            case self::TYPE_BOOLEAN:
+
+                if (is_bool($data)) {
+                    //Booleans are also integers, so we need to set the type to integer
+                    $this->type       = self::TYPE_INTEGER;
+                    $this->isNullable = true;
+
+                    $data = $data === true ? 1 : null;
+                }
+
+                !$this->isNullable && Assert::integer(
+                    value: $data,
+                    message: 'Data is not an integer for column' . $this->columnName
+                );
+
                 break;
             case self::TYPE_STRING:
                 $data = TextHelpers::beautifyTextValue(value: $data);
-                break;
-            case self::TYPE_BOOLEAN:
-                Assert::boolean(value: $data);
-                $data       = $data === true ? 1 : null;
-                $this->type = self::TYPE_INTEGER; //Set to integer
                 break;
             case self::TYPE_DATE:
                 !$this->isNullable && Assert::isInstanceOf(value: $data, class: DateTimeInterface::class);
@@ -71,6 +82,7 @@ final class Column
                 }
                 break;
         }
+
         $this->data[] = $data;
     }
 

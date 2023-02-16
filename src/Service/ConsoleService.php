@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Jield\Export\Service;
 
-use codename\parquet\data\DataColumn;
 use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
 use InvalidArgumentException;
@@ -112,11 +111,11 @@ class ConsoleService
         $worksheet->getPageSetup()->setFitToHeight(fitToHeight: 0);
 
         $excelColumn = 'A';
-        /** @var DataColumn $column */
-        foreach ($columnsHelper->getColumns() as $column) {
-            $worksheet->setCellValue(coordinate: $excelColumn . 1, value: $column->getField()->name);
 
-            foreach ($column->getData() as $row => $data) {
+        foreach ($columnsHelper->getColumns() as $column) {
+            $worksheet->setCellValue(coordinate: $excelColumn . 1, value: $column->toParquetColumn()->getField()->name);
+
+            foreach ($column->toParquetColumn()->getData() as $row => $data) {
                 $worksheet->setCellValue(coordinate: $excelColumn . ($row + 2), value: $data);
             }
 

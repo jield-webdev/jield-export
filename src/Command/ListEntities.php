@@ -13,7 +13,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ListEntities extends Command
 {
     /** @var string */
-    protected static $defaultName = 'search:list-entities';
+    protected static $defaultName = 'search:list';
 
     public function __construct(private readonly ConsoleService $consoleService)
     {
@@ -28,30 +28,30 @@ final class ListEntities extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln(messages: '<info>List of all entities in index</info>');
-        $cores = $this->consoleService->getEntities();
+        $entities = $this->consoleService->getEntities();
 
-        foreach ($cores as $core) {
+        foreach ($entities as $key => $entityName) {
             //Try to instantiate the core and see if we have a valid entity
             try {
-                $entity = new $core();
+                $entity = new $entityName();
                 if ($entity instanceof HasExportInterface) {
                     $output->writeln(
-                        messages: sprintf("Entity for %s is OK", $core)
+                        messages: sprintf("Entity for %s (%s) is OK", $key, $entityName)
                     );
                 } else {
                     $output->writeln(
-                        messages: sprintf("Entity for %s is missing the hasExportInterface", $core)
+                        messages: sprintf("Entity for %s (%s) is missing the hasExportInterface", $key, $entityName)
                     );
                 }
             } catch (\Exception $e) {
                 $output->writeln(
-                    messages: sprintf("Entity for %s is not valid", $core)
+                    messages: sprintf("Entity for %s (%s) is not valid", $key, $entityName)
                 );
                 continue;
             }
         }
 
-        $output->writeln(messages: sprintf("<info>In total %d cores are active</info>", count($cores)));
+        $output->writeln(messages: sprintf("<info>In total %d entities are active</info>", count($entities)));
 
         return Command::SUCCESS;
     }
