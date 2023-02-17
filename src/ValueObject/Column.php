@@ -54,7 +54,7 @@ final class Column
 
                 if (is_bool($data)) {
                     //Booleans are also integers, so we need to set the type to integer
-                    $this->type       = self::TYPE_INTEGER;
+                    $this->type = self::TYPE_INTEGER;
                     $this->isNullable = true;
 
                     $data = $data === true ? 1 : null;
@@ -67,18 +67,23 @@ final class Column
 
                 break;
             case self::TYPE_STRING:
+            case self::TYPE_TIME:
+
+                if ($data instanceof DateTimeInterface) {
+                    $data = $data->format(format: 'H:i');
+
+                    //We map the time to a string, so we need to set the type to string
+                    $this->type = self::TYPE_STRING;
+                }
+
                 $data = TextHelpers::beautifyTextValue(value: $data);
                 break;
             case self::TYPE_DATE:
                 !$this->isNullable && Assert::isInstanceOf(value: $data, class: DateTimeInterface::class);
                 if (null !== $data) {
-                    $data = $data instanceof DateTime ? $data : DateTime::createFromImmutable(object: $data);
-                }
-                break;
-            case self::TYPE_TIME:
-                !$this->isNullable && Assert::implementsInterface(value: $data, interface: DateTimeInterface::class);
-                if (null !== $data) {
-                    $data = $data->format(format: 'H:i');
+                    $data = $data instanceof DateTimeImmutable ? $data : DateTimeImmutable::createFromMutable(
+                        object: $data
+                    );
                 }
                 break;
         }
