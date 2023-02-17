@@ -110,5 +110,8 @@ config file: ![Azure Access keys screenshot](img/azure-access-keys.png)
 
    return ['jield_export'  => [
         'azure_blob_storage_connection_string' => 'DefaultEndpointsProtocol=https;AccountName=<ACCOUNTNAME>;AccountKey=<ACCOUNTKEY>;EndpointSuffix=core.windows.net'
+        'blob_container' => 'dropzone',
+        'parquet_folder' => 'parquet',
+        'excel_folder' => 'excel',
     ])
 ```

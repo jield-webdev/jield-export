@@ -99,7 +99,7 @@ class ConsoleService
         $parquetWriter->finish();
 
         $this->getBlobClient()->createBlockBlob(
-            container: 'dropzone',
+            container: $this->moduleOptions->getBlobContainer(),
             blob: $this->generateBlobName(name: $columnsHelper->getName()),
             content: file_get_contents(filename: $fileName)
         );
@@ -135,7 +135,7 @@ class ConsoleService
         $writer->save(filename: $fileName);
 
         $this->blobClient->createBlockBlob(
-            container: 'dropzone',
+            container: $this->moduleOptions->getBlobContainer(),
             blob: $this->generateBlobName(name: $columnsHelper->getName(), type: 'excel'),
             content: file_get_contents(filename: $fileName)
         );

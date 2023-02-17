@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Jield\Export\Command;
 
-use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Service\ConsoleService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -32,27 +31,9 @@ final class ListEntities extends Command
 
         foreach ($entities as $key => $entityName) {
             //Try to instantiate the core and see if we have a valid entity
-            try {
-                $entity = new $entityName();
-                if ($entity instanceof ColumnsHelperInterface) {
-                    $output->writeln(
-                        messages: sprintf("Entity for %s (%s) is OK", $key, $entityName)
-                    );
-                } else {
-                    $output->writeln(
-                        messages: sprintf(
-                            "Entity for %s (%s) does nit implement ColumnsHelperInterface",
-                            $key,
-                            $entityName
-                        )
-                    );
-                }
-            } catch (\Exception $e) {
-                $output->writeln(
-                    messages: sprintf("Entity for %s (%s) is not valid", $key, $entityName)
-                );
-                continue;
-            }
+            $output->writeln(
+                messages: sprintf("Entity for %s (%s) is active", $key, $entityName)
+            );
         }
 
         $output->writeln(messages: sprintf("<info>In total %d entities are active</info>", count($entities)));
