@@ -21,6 +21,7 @@ final class Column
     public const TYPE_DATE = 'date';
     public const TYPE_TIME = 'time';
     public const TYPE_BOOLEAN = 'boolean';
+    public const TYPE_FLOAT = 'float';
 
     private array $data = [];
 
@@ -30,6 +31,7 @@ final class Column
         self::TYPE_DATE,
         self::TYPE_TIME,
         self::TYPE_BOOLEAN,
+        self::TYPE_FLOAT,
     ];
 
     public function __construct(
@@ -54,7 +56,7 @@ final class Column
 
                 if (is_bool($data)) {
                     //Booleans are also integers, so we need to set the type to integer
-                    $this->type = self::TYPE_INTEGER;
+                    $this->type       = self::TYPE_INTEGER;
                     $this->isNullable = true;
 
                     $data = $data === true ? 1 : null;

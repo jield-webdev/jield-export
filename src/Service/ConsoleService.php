@@ -110,7 +110,7 @@ class ConsoleService
         $spreadsheet = new Spreadsheet();
         $worksheet   = $spreadsheet->getActiveSheet();
 
-        $worksheet->setTitle(title: $columnsHelper->getName());
+        $worksheet->setTitle(title: substr($columnsHelper->getName(), 0, 30)); //Excel has a limit of 31 characters
         $worksheet->getPageSetup()->setPaperSize(paperSize: PageSetup::PAPERSIZE_A4);
         $worksheet->getPageSetup()->setFitToWidth(value: 1);
         $worksheet->getPageSetup()->setFitToHeight(fitToHeight: 0);
