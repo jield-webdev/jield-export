@@ -71,11 +71,13 @@ final class Column
             case self::TYPE_STRING:
             case self::TYPE_TIME:
 
-                if ($data instanceof DateTimeInterface) {
-                    $data = $data->format(format: 'H:i');
-
+                if ($this->type === self::TYPE_TIME) {
                     //We map the time to a string, so we need to set the type to string
                     $this->type = self::TYPE_STRING;
+                }
+
+                if ($data instanceof DateTimeInterface) {
+                    $data = $data->format(format: 'H:i');
                 }
 
                 $data = TextHelpers::beautifyTextValue(value: $data);
