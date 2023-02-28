@@ -36,7 +36,7 @@ final class Column
 
     public function __construct(
         private readonly string $columnName,
-        private string $type = self::TYPE_STRING,
+        private readonly string $type = self::TYPE_STRING,
         private bool $isNullable = true
     ) {
         Assert::inArray(value: $type, values: $this->types);
@@ -56,7 +56,6 @@ final class Column
 
                 if (is_bool($data)) {
                     //Booleans are also integers, so we need to set the type to integer
-                    $this->type       = self::TYPE_INTEGER;
                     $this->isNullable = true;
 
                     $data = $data === true ? 1 : null;
@@ -70,12 +69,6 @@ final class Column
                 break;
             case self::TYPE_STRING:
             case self::TYPE_TIME:
-
-                if ($this->type === self::TYPE_TIME) {
-                    //We map the time to a string, so we need to set the type to string
-                    $this->type = self::TYPE_STRING;
-                }
-
                 if ($data instanceof DateTimeInterface) {
                     $data = $data->format(format: 'H:i');
                 }
@@ -97,11 +90,12 @@ final class Column
 
     public function toParquetColumn(): DataColumn
     {
-        if ($this->type === self::TYPE_DATE) {
-            $field = DateTimeDataField::create(name: $this->columnName, format: 4);
-        } else {
-            $field = DataField::createFromType(name: $this->columnName, type: $this->type);
-        }
+        $field = match ($this->type) {
+            self::TYPE_DATE => DateTimeDataField::create(name: $this->columnName, format: 4),
+            self::TYPE_TIME => DataField::createFromType(name: $this->columnName, type: self::TYPE_STRING),
+            self::TYPE_BOOLEAN => DataField::createFromType(name: $this->columnName, type: self::TYPE_INTEGER),
+            default => DataField::createFromType(name: $this->columnName, type: $this->type),
+        };
 
         return new DataColumn(
             field: $field,
