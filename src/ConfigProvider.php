@@ -37,7 +37,7 @@ final class ConfigProvider
                 ConsoleService::class => ConsoleServiceFactory::class,
                 ModuleOptions::class  => Factory\ModuleOptionsFactory::class,
                 SendEntity::class     => ConfigAbstractFactory::class,
-                ListEntities::class   => ConfigAbstractFactory::class
+                ListEntities::class   => ConfigAbstractFactory::class,
             ],
         ];
     }

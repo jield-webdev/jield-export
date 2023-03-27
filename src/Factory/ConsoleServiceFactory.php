@@ -13,6 +13,9 @@ final class ConsoleServiceFactory implements FactoryInterface
 {
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): ConsoleService
     {
-        return new ConsoleService(container: $container, moduleOptions: $container->get(ModuleOptions::class));
+        return new ConsoleService(
+            container: $container,
+            moduleOptions: $container->get(ModuleOptions::class),
+        );
     }
 }

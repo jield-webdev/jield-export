@@ -26,9 +26,11 @@ class ConsoleService
 
     protected BlobRestProxy $blobClient;
 
+    protected StorageLocationServiceInterface $storageLocationService;
+
     public function __construct(
         private readonly ContainerInterface $container,
-        private readonly ModuleOptions $moduleOptions
+        private readonly ModuleOptions $moduleOptions,
     ) {
         //Do an init check
         foreach ($this->moduleOptions->getEntities() as $key => $entityColumnsName) {
@@ -99,7 +101,7 @@ class ConsoleService
         $parquetWriter->finish();
 
         $this->getBlobClient()->createBlockBlob(
-            container: $this->moduleOptions->getBlobContainer(),
+            container: $this->storageLocationService->getDefaultStorageLocation()->getContainer(),
             blob: $this->generateBlobName(name: $columnsHelper->getName()),
             content: file_get_contents(filename: $fileName)
         );
@@ -134,8 +136,8 @@ class ConsoleService
         $writer = IOFactory::createWriter(spreadsheet: $spreadsheet, writerType: IOFactory::WRITER_XLSX);
         $writer->save(filename: $fileName);
 
-        $this->blobClient->createBlockBlob(
-            container: $this->moduleOptions->getBlobContainer(),
+        $this->getBlobClient()->createBlockBlob(
+            container: $this->storageLocationService->getDefaultStorageLocation()->getContainer(),
             blob: $this->generateBlobName(name: $columnsHelper->getName(), type: 'excel'),
             content: file_get_contents(filename: $fileName)
         );
@@ -144,8 +146,8 @@ class ConsoleService
     private function generateBlobName(string $name, string $type = 'parquet'): string
     {
         $folder = match ($type) {
-            'parquet' => $this->moduleOptions->getParquetFolder(),
-            'excel' => $this->moduleOptions->getExcelFolder(),
+            'parquet' => $this->storageLocationService->getDefaultStorageLocation()->getParquetFolder(),
+            'excel' => $this->storageLocationService->getDefaultStorageLocation()->getExcelFolder(),
             default => throw new InvalidArgumentException('Not a valid extension')
         };
 
@@ -160,13 +162,14 @@ class ConsoleService
     private function getBlobClient(): BlobRestProxy
     {
         if (!isset($this->blobClient)) {
-            if (empty($this->moduleOptions->getAzureBlobStorageConnectionString())) {
-                throw new InvalidArgumentException('Azure Blob Storage Connection String is empty');
+            //Grab the service from the service container
+            if (!$this->container->has(StorageLocationServiceInterface::class)) {
+                throw new InvalidArgumentException('StorageLocationServiceInterface not found in container');
             }
 
-            $this->blobClient = BlobRestProxy::createBlobService(
-                connectionString: $this->moduleOptions->getAzureBlobStorageConnectionString()
-            );
+            $this->storageLocationService = $this->container->get(StorageLocationServiceInterface::class);
+
+            $this->blobClient = $this->storageLocationService->getBlobService();
         }
 
         return $this->blobClient;

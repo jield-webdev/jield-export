@@ -63,7 +63,9 @@ final class Column
 
                 !$this->isNullable && Assert::integer(
                     value: $data,
-                    message: 'Data is not an integer for column' . $this->columnName
+                    message: 'Data is not an integer for column ' . $this->columnName . ' but of type: ' . gettype(
+                        $data
+                    )
                 );
 
                 break;

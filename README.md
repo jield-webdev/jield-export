@@ -103,15 +103,38 @@ needed register the class in the service manager
 
 ## Upload to Azure.
 
-If you want to upload to a storage account (Azure Data Lake 2), the following connection string needs to be added to the
-config file: ![Azure Access keys screenshot](img/azure-access-keys.png)
+Create an Azure storage account and create a container. The container name is used in the configuration file. Register a
+service in the service manager with `StorageLocationServiceInterface::class` as key, this service should
+implement `\Jield\Export\Service\StorageLocationServiceInterface` and required 2 methods
 
-```php
+- `getDefaultStorageLocation` which returns an object implementing `\Jield\Entity\StorageLocationInterface`, this
+  object should a connection string which supports an account key or SAS token (recommended). The system also support
+  access tokens but then `getOAuth2Service()` should return a service which is able to generate an access_token
+- `getBlobService` a function returns a `\MicrosoftAzure\Storage\Blob\BlobRestProxy` object, the following sample code
+  can be used
 
-   return ['jield_export'  => [
-        'azure_blob_storage_connection_string' => 'DefaultEndpointsProtocol=https;AccountName=<ACCOUNTNAME>;AccountKey=<ACCOUNTKEY>;EndpointSuffix=core.windows.net'
-        'blob_container' => 'dropzone',
-        'parquet_folder' => 'parquet',
-        'excel_folder' => 'excel',
-    ])
-```
+    ```php
+  public function getBlobService(): \MicrosoftAzure\Storage\Blob\BlobRestProxy
+    {
+        if (null !== $this->blobClient) {
+            return $this->blobClient;
+        }
+
+        $storageLocation = $this->getDefaultStorageLocation();
+
+        if ($storageLocation->hasOAuth2Service()) {
+            $accessToken = $this->oAuth2Service->fetchAccessTokenFromService($storageLocation->getOAuth2Service());
+
+            $this->blobClient = BlobRestProxy::createBlobServiceWithTokenCredential(
+                token: $accessToken,
+                connectionString: $storageLocation->getConnectionString()
+            );
+        } else {
+            $this->blobClient = BlobRestProxy::createBlobService(
+                connectionString: $storageLocation->getConnectionString()
+            );
+        }
+
+        return $this->blobClient;
+    }
+    ```
