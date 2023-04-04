@@ -38,6 +38,51 @@ class ConsoleService
         }
     }
 
+    public function generateDocumentation(OutputInterface $output): void
+    {
+        $tempImageFile = __DIR__ . '/../../../../../data/documentation.md';
+        $handle        = fopen(filename: $tempImageFile, mode: 'wb');
+
+        foreach ($this->moduleOptions->getEntities() as $key => $entityColumnsName) {
+            $output->writeln(messages: sprintf('<info>Writing MarkDown file for %s</info>', $entityColumnsName));
+
+            $this->createMarkdownFile(entityColumnsName: $entityColumnsName, handle: $handle);
+        }
+
+        fclose(stream: $handle);
+    }
+
+    private function createMarkdownFile(string $entityColumnsName, mixed $handle): void
+    {
+        //Try to grab the entity from the container, otherwise instantiate it
+        if ($this->container->has($entityColumnsName)) {
+            /** @var AbstractEntityColumns $createColumnsClass */
+            $createColumnsClass = $this->container->get($entityColumnsName);
+        } else {
+            /** @var AbstractEntityColumns $createColumnsClass */
+            $createColumnsClass = new $entityColumnsName($this->container->get(EntityManager::class));
+        }
+
+        $markDown = <<<MARKDOWN
+# {$createColumnsClass->getName()}
+
+{$createColumnsClass->getDescription()}
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+
+MARKDOWN;
+
+        foreach ($createColumnsClass->getColumns() as $column) {
+            $markDown .= <<<MARKDOWN
+|{$column->getColumnName()} | {$column->getType()} | {$column->isNullableText()} | {$column->getDescription()}|
+
+MARKDOWN;
+        }
+
+        fwrite(stream: $handle, data: $markDown);
+    }
+
     public function sendEntity(OutputInterface $output, string $entity): void
     {
         if ($entity === 'all') {

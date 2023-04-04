@@ -9,7 +9,9 @@ use Jield\Export\ValueObject\Column;
 
 abstract class AbstractEntityColumns implements ColumnsHelperInterface
 {
-    protected string $name = 'dimentity';
+    protected string $name = 'dim_entity';
+
+    protected ?string $description = null;
 
     public function __construct(protected readonly EntityManager $entityManager)
     {
@@ -18,6 +20,11 @@ abstract class AbstractEntityColumns implements ColumnsHelperInterface
     public function getName(): string
     {
         return $this->name;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
     }
 
     /**

@@ -37,9 +37,25 @@ final class Column
     public function __construct(
         private readonly string $columnName,
         private readonly string $type = self::TYPE_STRING,
-        private bool $isNullable = true
+        private bool $isNullable = true,
+        private readonly ?string $description = null
     ) {
         Assert::inArray(value: $type, values: $this->types);
+    }
+
+    public function getColumnName(): string
+    {
+        return $this->columnName;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function isNullableText(): string
+    {
+        return $this->isNullable ? 'Yes' : '';
     }
 
     public function addRow(int|string|float|null|bool|DateTime|DateTimeImmutable $data): void
@@ -103,5 +119,10 @@ final class Column
             field: $field,
             data: $this->data
         );
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
     }
 }
