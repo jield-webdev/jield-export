@@ -63,6 +63,16 @@ class ConsoleService
             $createColumnsClass = new $entityColumnsName($this->container->get(EntityManager::class));
         }
 
+        $this->writeMarkdownContent(createColumnsClass: $createColumnsClass, handle: $handle);
+
+        //Check if the entity has dependencies
+        foreach ($createColumnsClass->getDependencies() as $dependency) {
+            $this->createMarkdownFile(entityColumnsName: $dependency, handle: $handle);
+        }
+    }
+
+    private function writeMarkdownContent(AbstractEntityColumns $createColumnsClass, mixed $handle): void
+    {
         $markDown = <<<MARKDOWN
 # {$createColumnsClass->getName()}
 
