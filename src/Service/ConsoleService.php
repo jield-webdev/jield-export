@@ -13,6 +13,7 @@ use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\ValueObject\Column;
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
@@ -190,7 +191,12 @@ MARKDOWN;
             $worksheet->setCellValue(coordinate: $excelColumn . 1, value: $column->toParquetColumn()->getField()->name);
 
             foreach ($column->toParquetColumn()->getData() as $row => $data) {
-                $worksheet->setCellValue(coordinate: $excelColumn . ($row + 2), value: $data);
+                //When we accept a string we explicitly set the type to string to avoid issues with formulas
+                if ($column->getType() === Column::TYPE_STRING) {
+                    $worksheet->setCellValueExplicit(coordinate: $excelColumn . ($row + 2), value: $data, dataType: DataType::TYPE_STRING);
+                } else {
+                    $worksheet->setCellValue(coordinate: $excelColumn . ($row + 2), value: $data);
+                }
             }
 
             //Go to the next Excel Column
