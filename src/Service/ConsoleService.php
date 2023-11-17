@@ -30,8 +30,9 @@ class ConsoleService
 
     public function __construct(
         private readonly ContainerInterface $container,
-        private readonly ModuleOptions $moduleOptions,
-    ) {
+        private readonly ModuleOptions      $moduleOptions,
+    )
+    {
         //Do an init check
         foreach ($this->moduleOptions->getEntities() as $key => $entityColumnsName) {
             $this->entities[$key] = $entityColumnsName;
@@ -97,7 +98,7 @@ MARKDOWN;
     {
         if ($entity === 'all') {
             foreach ($this->entities as $entityColumnsName) {
-                $this->handleEntity(entityColumnsName: $entityColumnsName);
+                $this->handleEntity(entityColumnsName: $entityColumnsName, output: $output);
             }
 
             return;
@@ -111,11 +112,15 @@ MARKDOWN;
 
         $output->writeln(messages: sprintf('<info>Updating entity %s</info>', $entity));
 
-        $this->handleEntity(entityColumnsName: $this->entities[$entity]);
+        $this->handleEntity(entityColumnsName: $this->entities[$entity], output: $output);
     }
 
-    private function handleEntity(string $entityColumnsName): void
+    private function handleEntity(string $entityColumnsName, OutputInterface $output): void
     {
+        $output->writeLn(messages: sprintf('<comment>Sending %s</comment>', $entityColumnsName));
+
+        $startTime = microtime(as_float: true);
+
         //Try to grab the entity from the container, otherwise instantiate it
         if ($this->container->has($entityColumnsName)) {
             /** @var AbstractEntityColumns $createColumnsClass */
@@ -125,20 +130,25 @@ MARKDOWN;
             $createColumnsClass = new $entityColumnsName($this->container->get(EntityManager::class));
         }
 
-        $this->createParquetAndCreateBlob($createColumnsClass);
-        $this->createExcel($createColumnsClass);
+        //Fetch the columns so we have to do this once
+        $columns = $createColumnsClass->getColumns();
+
+        $this->createParquetAndCreateBlob($createColumnsClass, $columns);
+        $this->createExcel($createColumnsClass, $columns);
+
+        $output->writeLn(messages: sprintf('Finished in %04f seconds', microtime(as_float: true) - $startTime));
 
         //Check if the entity has dependencies
         foreach ($createColumnsClass->getDependencies() as $dependency) {
-            $this->handleEntity($dependency);
+            $this->handleEntity($dependency, $output);
         }
     }
 
-    private function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper): void
+    private function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper, array $columns): void
     {
         $fields = array_map(
-            callback: static fn (Column $column) => $column->toParquetColumn()->getField(),
-            array: $columnsHelper->getColumns()
+            callback: static fn(Column $column) => $column->toParquetColumn()->getField(),
+            array: $columns
         );
 
         $schema = new Schema(fields: $fields);
@@ -148,7 +158,8 @@ MARKDOWN;
         $parquetWriter = new ParquetWriter(schema: $schema, output: $fileStream);
 
         $groupWriter = $parquetWriter->CreateRowGroup();
-        foreach ($columnsHelper->getColumns() as $column) {
+        /** @var Column $column */
+        foreach ($columns as $column) {
             $groupWriter->WriteColumn(column: $column->toParquetColumn());
         }
 
@@ -162,7 +173,7 @@ MARKDOWN;
         );
     }
 
-    private function createExcel(ColumnsHelperInterface $columnsHelper): void
+    private function createExcel(ColumnsHelperInterface $columnsHelper, array $columns): void
     {
         $spreadsheet = new Spreadsheet();
         $worksheet   = $spreadsheet->getActiveSheet();
@@ -174,7 +185,8 @@ MARKDOWN;
 
         $excelColumn = 'A';
 
-        foreach ($columnsHelper->getColumns() as $column) {
+        /** @var Column $column */
+        foreach ($columns as $column) {
             $worksheet->setCellValue(coordinate: $excelColumn . 1, value: $column->toParquetColumn()->getField()->name);
 
             foreach ($column->toParquetColumn()->getData() as $row => $data) {
@@ -202,8 +214,8 @@ MARKDOWN;
     {
         $folder = match ($type) {
             'parquet' => $this->storageLocationService->getDefaultStorageLocation()->getParquetFolder(),
-            'excel' => $this->storageLocationService->getDefaultStorageLocation()->getExcelFolder(),
-            default => throw new InvalidArgumentException('Not a valid extension')
+            'excel'   => $this->storageLocationService->getDefaultStorageLocation()->getExcelFolder(),
+            default   => throw new InvalidArgumentException('Not a valid extension')
         };
 
         return sprintf('%s/%s.%s', $folder, $name, $type === 'parquet' ? 'parquet' : 'xlsx');

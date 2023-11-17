@@ -11,10 +11,29 @@ abstract class AbstractEntityColumns implements ColumnsHelperInterface
 {
     protected string $name = 'dim_entity';
 
+    protected string $entity = 'Admin\Entity\Entity';
+
+    protected int $chunkSize = 100000;
+
     protected ?string $description = null;
 
     public function __construct(protected readonly EntityManager $entityManager)
     {
+    }
+
+    protected function findCount(array $criteria): int
+    {
+        return $this->entityManager->getRepository($this->entity)->count(criteria: $criteria);
+    }
+
+    protected function findSliced(int $offset, array $criteria = []): array
+    {
+        return $this->entityManager->getRepository($this->entity)->findBy(
+            criteria: $criteria,
+            orderBy: [],
+            limit: $this->chunkSize,
+            offset: $offset
+        );
     }
 
     public function getName(): string
