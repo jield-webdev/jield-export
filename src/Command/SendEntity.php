@@ -42,6 +42,9 @@ final class SendEntity extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        //Because the CLI script can use a lot of memory which could lead to a memory leak, we will create a memory limit
+        ini_set(option: 'memory_limit', value: '1G');
+
         $entity = $input->getArgument(name: 'entity');
 
         $startMessage = sprintf("<info>Send entity %s</info>", $entity);

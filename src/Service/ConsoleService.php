@@ -138,6 +138,7 @@ MARKDOWN;
         $this->createExcel($createColumnsClass, $columns);
 
         $output->writeLn(messages: sprintf('Finished in %04f seconds', microtime(as_float: true) - $startTime));
+        $output->writeLn(messages: sprintf('Current memory consumption: %d MiB', memory_get_usage(true) / 1024 / 1024));
 
         //Check if the entity has dependencies
         foreach ($createColumnsClass->getDependencies() as $dependency) {
