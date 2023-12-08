@@ -38,19 +38,29 @@ final class SendEntity extends Command
             description: $cores,
             default: 'all'
         );
+
+        $this->addOption(
+            name: 'memory-limit',
+            mode: InputOption::VALUE_OPTIONAL,
+            description: 'Provide a memory limit for the CLI script',
+            default: '1G'
+        );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        //Because the CLI script can use a lot of memory which could lead to a memory leak, we will create a memory limit
-        ini_set(option: 'memory_limit', value: '1G');
+        $memoryLimit = $input->getOption(name: 'memory-limit');
+
+        ini_set(option: 'memory_limit', value: $memoryLimit);
 
         $entity = $input->getArgument(name: 'entity');
 
-        $startMessage = sprintf("<info>Send entity %s</info>", $entity);
-        $endMessage   = sprintf("<info>Sending %s completed</info>", $entity);
+        $startMessage  = sprintf("<info>Send entity %s</info>", $entity);
+        $memoryMessage = sprintf("Memory limit set to %s", ini_get(option: 'memory_limit'));
+        $endMessage    = sprintf("<info>Sending %s completed</info>", $entity);
 
         $output->writeln(messages: $startMessage);
+        $output->writeln(messages: $memoryMessage);
 
         $this->consoleService->sendEntity(output: $output, entity: $entity);
 
