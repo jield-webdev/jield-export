@@ -25,21 +25,23 @@ final class Column
 
     private array $data = [];
 
-    public array $types = [
-        self::TYPE_STRING,
-        self::TYPE_INTEGER,
-        self::TYPE_DATE,
-        self::TYPE_TIME,
-        self::TYPE_BOOLEAN,
-        self::TYPE_FLOAT,
-    ];
+    public array $types
+        = [
+            self::TYPE_STRING,
+            self::TYPE_INTEGER,
+            self::TYPE_DATE,
+            self::TYPE_TIME,
+            self::TYPE_BOOLEAN,
+            self::TYPE_FLOAT,
+        ];
 
     public function __construct(
-        private readonly string $columnName,
-        private readonly string $type = self::TYPE_STRING,
-        private bool $isNullable = true,
+        private readonly string  $columnName,
+        private readonly string  $type = self::TYPE_STRING,
+        private bool             $isNullable = true,
         private readonly ?string $description = null
-    ) {
+    )
+    {
         Assert::inArray(value: $type, values: $this->types);
     }
 
@@ -96,9 +98,28 @@ final class Column
             case self::TYPE_DATE:
                 !$this->isNullable && Assert::isInstanceOf(value: $data, class: DateTimeInterface::class);
                 if (null !== $data) {
-                    $data = $data instanceof DateTimeImmutable ? $data : DateTimeImmutable::createFromMutable(
+                    //The parquet converter uses an internal system to derive the amount of unix days, therefore
+                    //We have a mismatch when calculating the days from a DateTimeImmutable object because of timezone differences
+                    //Therefore we need to convert the DateTimeImmutable object to a DateTimeImmutable object but then in the UTC timezone
+                    //This way the parquet converter will calculate the correct amount of days
+                    //The parquet converter will then convert the amount of days back to a DateTimeImmutable object
+                    //This is a workaround for the parquet converter
+                    $dateInLocalTimezone = $data instanceof DateTimeImmutable ? $data : DateTimeImmutable::createFromMutable(
                         object: $data
                     );
+
+                    $data = (new DateTimeImmutable())->setTimezone(
+                        timezone: new \DateTimeZone('UTC')
+                    );
+                    $data = $data->setDate(
+                        year: (int)$dateInLocalTimezone->format(format: 'Y'),
+                        month: (int)$dateInLocalTimezone->format(format: 'm'),
+                        day: (int)$dateInLocalTimezone->format(format: 'd'),
+                    )->setTime(
+                        hour: 0,
+                        minute: 0,
+                        second: 0);
+
                 }
                 break;
         }
@@ -109,10 +130,10 @@ final class Column
     public function toParquetColumn(): DataColumn
     {
         $field = match ($this->type) {
-            self::TYPE_DATE => DateTimeDataField::create(name: $this->columnName, format: 4),
-            self::TYPE_TIME => DataField::createFromType(name: $this->columnName, type: self::TYPE_STRING),
+            self::TYPE_DATE    => DateTimeDataField::create(name: $this->columnName, format: 4),
+            self::TYPE_TIME    => DataField::createFromType(name: $this->columnName, type: self::TYPE_STRING),
             self::TYPE_BOOLEAN => DataField::createFromType(name: $this->columnName, type: self::TYPE_INTEGER),
-            default => DataField::createFromType(name: $this->columnName, type: $this->type),
+            default            => DataField::createFromType(name: $this->columnName, type: $this->type),
         };
 
         return new DataColumn(
