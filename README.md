@@ -110,11 +110,11 @@ implement `\Jield\Export\Service\StorageLocationServiceInterface` and required 2
 - `getDefaultStorageLocation` which returns an object implementing `\Jield\Entity\StorageLocationInterface`, this
   object should a connection string which supports an account key or SAS token (recommended). The system also support
   access tokens but then `getOAuth2Service()` should return a service which is able to generate an access_token
-- `getBlobService` a function returns a `\MicrosoftAzure\Storage\Blob\BlobRestProxy` object, the following sample code
+- `getBlobService` a function returns a `\AzureOSS\Storage\Blob\BlobRestProxy` object, the following sample code
   can be used
 
     ```php
-  public function getBlobService(): \MicrosoftAzure\Storage\Blob\BlobRestProxy
+  public function getBlobService(): \AzureOSS\Storage\Blob\BlobRestProxy
     {
         if (null !== $this->blobClient) {
             return $this->blobClient;
