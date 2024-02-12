@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Jield\Export\Service;
 
+use AzureOSS\Storage\Blob\BlobRestProxy;
 use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
 use Doctrine\ORM\EntityManager;
@@ -12,7 +13,6 @@ use Jield\Export\Columns\AbstractEntityColumns;
 use Jield\Export\Columns\ColumnsHelperInterface;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\ValueObject\Column;
-use MicrosoftAzure\Storage\Blob\BlobRestProxy;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -238,7 +238,7 @@ MARKDOWN;
         return sprintf('%s/%s.%s', sys_get_temp_dir(), $name, $type === 'parquet' ? 'parquet' : 'xlsx');
     }
 
-    private function getBlobClient(): BlobRestProxy
+    private function getBlobClient(): \AzureOSS\Storage\Blob\BlobRestProxy
     {
         if (!isset($this->blobClient)) {
             //Grab the service from the service container

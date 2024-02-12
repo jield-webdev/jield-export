@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Jield\Export\Service;
 
+use AzureOSS\Storage\Blob\BlobRestProxy;
 use Jield\Export\Entity\StorageLocationInterface;
-use MicrosoftAzure\Storage\Blob\BlobRestProxy;
 
 interface StorageLocationServiceInterface
 {
