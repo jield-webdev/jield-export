@@ -16,12 +16,12 @@ use Webmozart\Assert\Assert;
 
 final class Column
 {
-    public const TYPE_STRING = 'string';
-    public const TYPE_INTEGER = 'integer';
-    public const TYPE_DATE = 'date';
-    public const TYPE_TIME = 'time';
-    public const TYPE_BOOLEAN = 'boolean';
-    public const TYPE_FLOAT = 'float';
+    public const string TYPE_STRING  = 'string';
+    public const string TYPE_INTEGER = 'integer';
+    public const string TYPE_DATE    = 'date';
+    public const string TYPE_TIME    = 'time';
+    public const string TYPE_BOOLEAN = 'boolean';
+    public const string TYPE_FLOAT   = 'float';
 
     private array $data = [];
 
@@ -36,12 +36,11 @@ final class Column
         ];
 
     public function __construct(
-        private readonly string  $columnName,
-        private readonly string  $type = self::TYPE_STRING,
-        private bool             $isNullable = true,
+        private readonly string $columnName,
+        private readonly string $type = self::TYPE_STRING,
+        private bool $isNullable = true,
         private readonly ?string $description = null
-    )
-    {
+    ) {
         Assert::inArray(value: $type, values: $this->types);
     }
 
@@ -80,17 +79,17 @@ final class Column
                 }
 
                 !$this->isNullable && Assert::integer(
-                    value: $data,
+                    value:   $data,
                     message: 'Data is not an integer for column ' . $this->columnName . ' but of type: ' . gettype(
-                        $data
-                    )
+                                 $data
+                             )
                 );
 
                 break;
             case self::TYPE_STRING:
             case self::TYPE_TIME:
                 if ($data instanceof DateTimeInterface) {
-                    $data = $data->format(format: 'H:i');
+                    $data = $data->format(format: 'H:i:s');
                 }
 
                 $data = TextHelpers::beautifyTextValue(value: $data);
@@ -112,14 +111,14 @@ final class Column
                         timezone: new \DateTimeZone('UTC')
                     );
                     $data = $data->setDate(
-                        year: (int)$dateInLocalTimezone->format(format: 'Y'),
+                        year:  (int)$dateInLocalTimezone->format(format: 'Y'),
                         month: (int)$dateInLocalTimezone->format(format: 'm'),
-                        day: (int)$dateInLocalTimezone->format(format: 'd'),
+                        day:   (int)$dateInLocalTimezone->format(format: 'd'),
                     )->setTime(
-                        hour: 0,
+                        hour:   0,
                         minute: 0,
-                        second: 0);
-
+                        second: 0
+                    );
                 }
                 break;
         }
@@ -130,15 +129,15 @@ final class Column
     public function toParquetColumn(): DataColumn
     {
         $field = match ($this->type) {
-            self::TYPE_DATE    => DateTimeDataField::create(name: $this->columnName, format: 4),
-            self::TYPE_TIME    => DataField::createFromType(name: $this->columnName, type: self::TYPE_STRING),
+            self::TYPE_DATE => DateTimeDataField::create(name: $this->columnName, format: 4),
+            self::TYPE_TIME => DataField::createFromType(name: $this->columnName, type: self::TYPE_STRING),
             self::TYPE_BOOLEAN => DataField::createFromType(name: $this->columnName, type: self::TYPE_INTEGER),
-            default            => DataField::createFromType(name: $this->columnName, type: $this->type),
+            default => DataField::createFromType(name: $this->columnName, type: $this->type),
         };
 
         return new DataColumn(
             field: $field,
-            data: $this->data
+            data:  $this->data
         );
     }
 
