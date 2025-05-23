@@ -1,6 +1,6 @@
 # jield-export
 
-This repo can be used to export database objects (using Doctrine) to External data formats (Excel/Parquet/CSV)
+This repo can be used to export database objects (using Doctrine) to External data formats (Excel/Parquet/CSV/JSON)
 
 ## Installation
 
@@ -31,7 +31,7 @@ use General\Export\Country\CountryColumns;
 return [
     'jield_export' => [
         'entities' => [
-            'country' => CountryColumns::class
+            'country' => ['columns' => CountryColumns::class,'json' => CountryJson::class],
         ],
     ]
 ];
@@ -91,6 +91,39 @@ final class CountryColumns extends AbstractEntityColumns
             'organisationtype' => TypeColumns::class,
         ];
     }
+}
+```
+
+An example of the ```CountryJson``` class is shown below. This class is used to export the data in JSON format.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Admin\Export\Json;
+
+use Admin\Entity\Country;
+use Admin\Provider\CountryProvider;
+use Jield\Export\Json\AbstractEntityJson;
+use Override;
+
+final class CountryJson extends AbstractEntityJson
+{
+    protected string $name = 'country';
+
+    protected ?string $description = 'Table for Countrys. Contains transactional data related to services.';
+
+    protected string $provider = CountryProvider::class;
+    protected string $entity   = Country::class;
+
+    #[Override]
+    public function getDependencies(): array
+    {
+        return [
+        ];
+    }
+
 }
 ```
 

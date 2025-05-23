@@ -8,6 +8,8 @@ use Jield\Export\Enum\ExportFileTypeEnum;
 
 interface StorageLocationInterface
 {
+    public function getId(): int|null;
+
     public function getName(): string;
 
     public function getConnectionString(): string;
