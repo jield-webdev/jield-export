@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Jield\Export\Command;
 
+use Jield\Export\Entity\StorageLocationInterface;
 use Jield\Export\Service\ConsoleService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -29,10 +30,29 @@ final class SendEntity extends Command
                        )
         );
 
+        $storageLocations = implode(
+            separator: ', ',
+            array:     array_map(
+                           callback: static fn(StorageLocationInterface $storageLocation) => sprintf(
+                               '%d: %s',
+                               $storageLocation->getId(),
+                               $storageLocation->getName()
+                           ),
+                           array: $this->consoleService->getStorageLocations()
+                       )
+        );
+
         $this->addArgument(
             name:        'entity',
             mode:        InputOption::VALUE_REQUIRED,
             description: $cores,
+            default:     'all'
+        );
+
+        $this->addArgument(
+            name:        'storage-location',
+            mode:        InputOption::VALUE_REQUIRED,
+            description: $storageLocations,
             default:     'all'
         );
 
@@ -50,16 +70,33 @@ final class SendEntity extends Command
 
         ini_set(option: 'memory_limit', value: $memoryLimit);
 
-        $entity = $input->getArgument(name: 'entity');
+        $entity          = $input->getArgument(name: 'entity');
+        $storageLocation = $input->getArgument(name: 'storage-location');
 
-        $startMessage  = sprintf("<info>Send entity %s</info>", $entity);
+        $storageLocations = array_filter(
+            array: $this->consoleService->getStorageLocations(),
+            callback: static fn(StorageLocationInterface $location) => (string)$location->getId(
+                ) === (string)$storageLocation || $storageLocation === 'all'
+        );
+
+        $startMessage  = sprintf(
+            "<info>Send entity %s, to: %s</info>",
+            $entity,
+            implode(
+                ', ',
+                array_map(
+                    callback: static fn(StorageLocationInterface $location) => $location->getName(),
+                    array: $storageLocations,
+                )
+            )
+        );
         $memoryMessage = sprintf("Memory limit set to %s", ini_get(option: 'memory_limit'));
         $endMessage    = sprintf("<info>Sending %s completed</info>", $entity);
 
         $output->writeln(messages: $startMessage);
         $output->writeln(messages: $memoryMessage);
 
-        $this->consoleService->sendEntity(output: $output, entity: $entity);
+        $this->consoleService->sendEntity(output: $output, entity: $entity, storageLocations: $storageLocations);
 
         $output->writeln(messages: $endMessage);
 

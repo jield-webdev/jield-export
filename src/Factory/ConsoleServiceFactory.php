@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Jield\Export\Factory;
 
+use Doctrine\ORM\EntityManager;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\Service\ConsoleService;
 use Laminas\ServiceManager\Factory\FactoryInterface;
@@ -14,7 +15,8 @@ final class ConsoleServiceFactory implements FactoryInterface
     public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): ConsoleService
     {
         return new ConsoleService(
-            container: $container,
+            container:     $container,
+            entityManager: $container->get(EntityManager::class),
             moduleOptions: $container->get(ModuleOptions::class),
         );
     }

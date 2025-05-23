@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Jield\Export\Options;
 
+use Jield\Export\Entity\StorageLocation;
 use Laminas\Stdlib\AbstractOptions;
 
 class ModuleOptions extends AbstractOptions
 {
-    protected array $entities = [];
+    protected array  $entities              = [];
+    protected string $storageLocationEntity = StorageLocation::class;
 
     public function getEntities(): array
     {
@@ -18,5 +20,15 @@ class ModuleOptions extends AbstractOptions
     public function setEntities(array $entities): void
     {
         $this->entities = $entities;
+    }
+
+    public function getStorageLocationEntity(): string
+    {
+        return $this->storageLocationEntity;
+    }
+
+    public function setStorageLocationEntity(string $storageLocationEntity): void
+    {
+        $this->storageLocationEntity = $storageLocationEntity;
     }
 }

@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace Jield\Export\Entity;
 
+use Jield\Export\Enum\ExportFileTypeEnum;
+
 interface StorageLocationInterface
 {
+    public function getName(): string;
+
     public function getConnectionString(): string;
 
-    public function getExcelFolder(): string;
+    public function getFolder(): string;
 
-    public function getParquetFolder(): string;
+    public function getExportFileType(): ExportFileTypeEnum;
 
     public function getContainer(): string;
-
-    public function getOAuth2Service(): mixed;
 }

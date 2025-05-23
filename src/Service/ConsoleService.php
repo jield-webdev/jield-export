@@ -7,10 +7,14 @@ namespace Jield\Export\Service;
 use AzureOSS\Storage\Blob\BlobRestProxy;
 use codename\parquet\data\Schema;
 use codename\parquet\ParquetWriter;
+use Doctrine\Common\Collections\Order;
 use Doctrine\ORM\EntityManager;
 use InvalidArgumentException;
 use Jield\Export\Columns\AbstractEntityColumns;
 use Jield\Export\Columns\ColumnsHelperInterface;
+use Jield\Export\Entity\StorageLocationInterface;
+use Jield\Export\Enum\ExportFileTypeEnum;
+use Jield\Export\Json\AbstractEntityJson;
 use Jield\Export\Options\ModuleOptions;
 use Jield\Export\ValueObject\Column;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -20,10 +24,15 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Webmozart\Assert\Assert;
 
 class ConsoleService
 {
     private array $entities = [];
+    /**
+     * @var StorageLocationInterface[]
+     */
+    private ?array $storageLocations = null;
 
     protected BlobRestProxy $blobClient;
 
@@ -31,9 +40,9 @@ class ConsoleService
 
     public function __construct(
         private readonly ContainerInterface $container,
-        private readonly ModuleOptions      $moduleOptions,
-    )
-    {
+        private readonly EntityManager $entityManager,
+        private readonly ModuleOptions $moduleOptions,
+    ) {
         //Do an init check
         foreach ($this->moduleOptions->getEntities() as $key => $entityColumnsName) {
             $this->entities[$key] = $entityColumnsName;
@@ -45,10 +54,14 @@ class ConsoleService
         $tempImageFile = __DIR__ . '/../../../../../data/documentation.md';
         $handle        = fopen(filename: $tempImageFile, mode: 'wb');
 
-        foreach ($this->moduleOptions->getEntities() as $key => $entityColumnsName) {
-            $output->writeln(messages: sprintf('<info>Writing MarkDown file for %s</info>', $entityColumnsName));
+        foreach ($this->moduleOptions->getEntities() as $key => $entityInformation) {
+            if (array_key_exists('columns', $entityInformation)) {
+                $output->writeln(
+                    messages: sprintf('<info>Writing MarkDown file for %s</info>', key($entityInformation))
+                );
 
-            $this->createMarkdownFile(entityColumnsName: $entityColumnsName, handle: $handle);
+                $this->createMarkdownFile(entityColumnsName: $entityInformation['columns'], handle: $handle);
+            }
         }
 
         fclose(stream: $handle);
@@ -95,11 +108,25 @@ MARKDOWN;
         fwrite(stream: $handle, data: $markDown);
     }
 
-    public function sendEntity(OutputInterface $output, string $entity): void
+    /**
+     * @param OutputInterface $output
+     * @param string $entity
+     * @param StorageLocationInterface[] $storageLocations
+     * @return void
+     */
+    public function sendEntity(OutputInterface $output, string $entity, array $storageLocations): void
     {
         if ($entity === 'all') {
-            foreach ($this->entities as $entityColumnsName) {
-                $this->handleEntity(entityColumnsName: $entityColumnsName, output: $output);
+            foreach ($this->entities as $entityInformation) {
+                foreach ($storageLocations as $storageLocation) {
+                    $columnKey = $storageLocation->getExportFileType()->getColumnKey();
+
+                    $this->handleEntity(
+                        storageLocation:   $storageLocation,
+                        columnOrJsonClass: $entityInformation[$columnKey],
+                        output:            $output
+                    );
+                }
             }
 
             return;
@@ -113,41 +140,108 @@ MARKDOWN;
 
         $output->writeln(messages: sprintf('<info>Updating entity %s</info>', $entity));
 
-        $this->handleEntity(entityColumnsName: $this->entities[$entity], output: $output);
+        foreach ($storageLocations as $storageLocation) {
+            $columnKey = $storageLocation->getExportFileType()->getColumnKey();
+
+            $this->handleEntity(
+                storageLocation:   $storageLocation,
+                columnOrJsonClass: $this->entities[$entity][$columnKey],
+                output:            $output
+            );
+        }
     }
 
-    private function handleEntity(string $entityColumnsName, OutputInterface $output): void
-    {
-        $output->writeLn(messages: sprintf('<comment>Sending %s</comment>', $entityColumnsName));
+    private function handleEntity(
+        StorageLocationInterface $storageLocation,
+        string $columnOrJsonClass,
+        OutputInterface $output
+    ): void {
+        $output->writeLn(
+            messages: sprintf(
+                          '<comment>Sending %s to %s</comment>',
+                          $columnOrJsonClass,
+                          $storageLocation->getName()
+                      )
+        );
 
         $startTime = microtime(as_float: true);
 
-        //Try to grab the entity from the container, otherwise instantiate it
-        if ($this->container->has($entityColumnsName)) {
-            /** @var AbstractEntityColumns $createColumnsClass */
-            $createColumnsClass = $this->container->get($entityColumnsName);
-        } else {
-            /** @var AbstractEntityColumns $createColumnsClass */
-            $createColumnsClass = new $entityColumnsName($this->container->get(EntityManager::class));
+        switch ($storageLocation->getExportFileType()) {
+            case ExportFileTypeEnum::PARQUET:
+
+                //Try to grab the entity from the container, otherwise instantiate it
+                if ($this->container->has($columnOrJsonClass)) {
+                    /** @var AbstractEntityColumns $createColumnsOrJsonClass */
+                    $createColumnsOrJsonClass = $this->container->get($columnOrJsonClass);
+                } else {
+                    /** @var AbstractEntityColumns $createColumnsOrJsonClass */
+                    $createColumnsOrJsonClass = new $columnOrJsonClass($this->container->get(EntityManager::class));
+                }
+                $columns = $createColumnsOrJsonClass->getColumns();
+                //Fetch the columns so we have to do this once
+                $this->createParquetAndCreateBlob(
+                    storageLocation: $storageLocation,
+                    columnsHelper:   $createColumnsOrJsonClass,
+                    columns:         $columns
+                );
+                break;
+            case ExportFileTypeEnum::EXCEL:
+            case ExportFileTypeEnum::CSV:
+
+
+                //Try to grab the entity from the container, otherwise instantiate it
+                if ($this->container->has($columnOrJsonClass)) {
+                    /** @var AbstractEntityColumns $createColumnsOrJsonClass */
+                    $createColumnsOrJsonClass = $this->container->get($columnOrJsonClass);
+                } else {
+                    /** @var AbstractEntityColumns $createColumnsOrJsonClass */
+                    $createColumnsOrJsonClass = new $columnOrJsonClass($this->container->get(EntityManager::class));
+                }
+                $columns = $createColumnsOrJsonClass->getColumns();
+                $this->createExcel(
+                    storageLocation: $storageLocation,
+                    columnsHelper:   $createColumnsOrJsonClass,
+                    columns:         $columns
+                );
+                break;
+            case ExportFileTypeEnum::JSON:
+                /** @var AbstractEntityJson $createColumnsOrJsonClass */
+                $createColumnsOrJsonClass = new $columnOrJsonClass($this->container);
+
+                $this->createJson(
+                    storageLocation: $storageLocation,
+                    jsonHelper:      $createColumnsOrJsonClass,
+                );
+                break;
+            default:
+                throw new InvalidArgumentException(
+                    message: sprintf('Storage location %s is not supported', $storageLocation->getName())
+                );
         }
 
-        //Fetch the columns so we have to do this once
-        $columns = $createColumnsClass->getColumns();
-
-        $this->createParquetAndCreateBlob($createColumnsClass, $columns);
-//        $this->createExcel($createColumnsClass, $columns);
 
         $output->writeLn(messages: sprintf('Finished in %04f seconds', microtime(as_float: true) - $startTime));
         $output->writeLn(messages: sprintf('Current memory consumption: %d MiB', memory_get_usage(true) / 1024 / 1024));
 
         //Check if the entity has dependencies
-        foreach ($createColumnsClass->getDependencies() as $dependency) {
-            $this->handleEntity($dependency, $output);
+        foreach ($createColumnsOrJsonClass->getDependencies() as $dependency) {
+            $this->handleEntity(
+                storageLocation:   $storageLocation,
+                columnOrJsonClass: $dependency,
+                output:            $output
+            );
         }
     }
 
-    private function createParquetAndCreateBlob(ColumnsHelperInterface $columnsHelper, array $columns): void
-    {
+    private function createParquetAndCreateBlob(
+        StorageLocationInterface $storageLocation,
+        ColumnsHelperInterface $columnsHelper,
+        array $columns
+    ): void {
+        if (!$storageLocation->getExportFileType()->isParquet()) {
+            throw new InvalidArgumentException('Storage location is not an Parquet file type');
+        }
+
         $fields = array_map(
             callback: static fn(Column $column) => $column->toParquetColumn()->getField(),
             array: $columns
@@ -155,7 +249,10 @@ MARKDOWN;
 
         $schema = new Schema(fields: $fields);
 
-        $fileName      = $this->generateTempFileName(name: $columnsHelper->getName());
+        $fileName      = $this->generateTempFileName(
+            storageLocation: $storageLocation,
+            name:            $columnsHelper->getName()
+        );
         $fileStream    = fopen(filename: $fileName, mode: 'wb+');
         $parquetWriter = new ParquetWriter(schema: $schema, output: $fileStream);
 
@@ -169,18 +266,49 @@ MARKDOWN;
         $parquetWriter->finish();
 
         $this->getBlobClient()->createBlockBlob(
-            container: $this->storageLocationService->getDefaultStorageLocation()->getContainer(),
-            blob: $this->generateBlobName(name: $columnsHelper->getName()),
-            content: file_get_contents(filename: $fileName)
+            container: $storageLocation->getContainer(),
+            blob:      $this->generateBlobName(storageLocation: $storageLocation, name: $columnsHelper->getName()),
+            content:   file_get_contents(filename: $fileName)
         );
     }
 
-    private function createExcel(ColumnsHelperInterface $columnsHelper, array $columns): void
-    {
+    private function createJson(
+        StorageLocationInterface $storageLocation,
+        AbstractEntityJson $jsonHelper,
+    ): void {
+        if (!$storageLocation->getExportFileType()->isJson()) {
+            throw new InvalidArgumentException('Storage location is not an Json file type');
+        }
+
+        $jsonData = $jsonHelper->getJsonData();
+
+        //Save the JSON data to a temporary file
+
+//        $fileName = $this->generateTempFileName($storageLocation, name: $jsonHelper->getName());
+
+
+        $this->getBlobClient()->createBlockBlob(
+            container: $storageLocation->getContainer(),
+            blob:      $this->generateBlobName(storageLocation: $storageLocation, name: $jsonHelper->getName()),
+            content:   $jsonData
+        );
+    }
+
+    private function createExcel(
+        StorageLocationInterface $storageLocation,
+        ColumnsHelperInterface $columnsHelper,
+        array $columns
+    ): void {
+        if (!$storageLocation->getExportFileType()->isSpreadsheet()) {
+            throw new InvalidArgumentException('Storage location is not an Excel file type');
+        }
+
         $spreadsheet = new Spreadsheet();
         $worksheet   = $spreadsheet->getActiveSheet();
 
-        $worksheet->setTitle(title: substr($columnsHelper->getName(), 0, 30)); //Excel has a limit of 31 characters
+        $worksheet->setTitle(
+            title: substr(string: $columnsHelper->getName(), offset: 0, length: 30)
+        ); //Excel has a limit of 31 characters
         $worksheet->getPageSetup()->setPaperSize(paperSize: PageSetup::PAPERSIZE_A4);
         $worksheet->getPageSetup()->setFitToWidth(value: 1);
         $worksheet->getPageSetup()->setFitToHeight(fitToHeight: 0);
@@ -192,9 +320,13 @@ MARKDOWN;
             $worksheet->setCellValue(coordinate: $excelColumn . 1, value: $column->toParquetColumn()->getField()->name);
 
             foreach ($column->toParquetColumn()->getData() as $row => $data) {
-                //When we accept a string we explicitly set the type to string to avoid issues with formulas
+                //When we accept a string, we explicitly set the type to string to avoid issues with formulas
                 if ($column->getType() === Column::TYPE_STRING) {
-                    $worksheet->setCellValueExplicit(coordinate: $excelColumn . ($row + 2), value: $data, dataType: DataType::TYPE_STRING);
+                    $worksheet->setCellValueExplicit(
+                        coordinate: $excelColumn . ($row + 2),
+                        value:      $data,
+                        dataType:   DataType::TYPE_STRING
+                    );
                 } else {
                     $worksheet->setCellValue(coordinate: $excelColumn . ($row + 2), value: $data);
                 }
@@ -204,16 +336,21 @@ MARKDOWN;
             $excelColumn++;
         }
 
-        $fileName = $this->generateTempFileName(name: $columnsHelper->getName(), type: 'excel');
+        $fileName = $this->generateTempFileName($storageLocation, name: $columnsHelper->getName());
 
         /** @var Xlsx $writer */
-        $writer = IOFactory::createWriter(spreadsheet: $spreadsheet, writerType: IOFactory::WRITER_XLSX);
+        $writer = IOFactory::createWriter(
+            spreadsheet: $spreadsheet,
+            writerType: ($storageLocation->getExportFileType(
+            ) === ExportFileTypeEnum::EXCEL ? IOFactory::WRITER_XLSX : IOFactory::READER_CSV
+            )
+        );
         $writer->save(filename: $fileName);
 
         $this->getBlobClient()->createBlockBlob(
-            container: $this->storageLocationService->getDefaultStorageLocation()->getContainer(),
-            blob: $this->generateBlobName(name: $columnsHelper->getName(), type: 'excel'),
-            content: file_get_contents(filename: $fileName)
+            container: $storageLocation->getContainer(),
+            blob:      $this->generateBlobName(storageLocation: $storageLocation, name: $columnsHelper->getName()),
+            content:   file_get_contents(filename: $fileName)
         );
 
         $spreadsheet->disconnectWorksheets();
@@ -222,20 +359,19 @@ MARKDOWN;
         gc_collect_cycles();
     }
 
-    private function generateBlobName(string $name, string $type = 'parquet'): string
+    private function generateBlobName(StorageLocationInterface $storageLocation, string $name): string
     {
-        $folder = match ($type) {
-            'parquet' => $this->storageLocationService->getDefaultStorageLocation()->getParquetFolder(),
-            'excel'   => $this->storageLocationService->getDefaultStorageLocation()->getExcelFolder(),
-            default   => throw new InvalidArgumentException('Not a valid extension')
-        };
-
-        return sprintf('%s/%s.%s', $folder, $name, $type === 'parquet' ? 'parquet' : 'xlsx');
+        return sprintf(
+            '%s/%s.%s',
+            $storageLocation->getFolder(),
+            $name,
+            $storageLocation->getExportFileType()->parseExtension()
+        );
     }
 
-    private function generateTempFileName(string $name, string $type = 'parquet'): string
+    private function generateTempFileName(StorageLocationInterface $storageLocation, string $name): string
     {
-        return sprintf('%s/%s.%s', sys_get_temp_dir(), $name, $type === 'parquet' ? 'parquet' : 'xlsx');
+        return sprintf('%s/%s.%s', sys_get_temp_dir(), $name, $storageLocation->getExportFileType()->parseExtension());
     }
 
     private function getBlobClient(): \AzureOSS\Storage\Blob\BlobRestProxy
@@ -257,5 +393,25 @@ MARKDOWN;
     public function getEntities(): array
     {
         return $this->entities;
+    }
+
+    public function getStorageLocations(): array
+    {
+        if (null === $this->storageLocations) {
+            //Find the entity which holds the storage location
+            $storageLocationEntity = $this->moduleOptions->getStorageLocationEntity();
+
+            //This entity has to implement the StorageLocationInterface
+            Assert::implementsInterface(
+                value:     new $storageLocationEntity(),
+                interface: StorageLocationInterface::class
+            );
+
+            $this->storageLocations = $this->entityManager->getRepository(
+                $storageLocationEntity
+            )->findBy(criteria: [], orderBy: ['name' => Order::Ascending->value]);
+        }
+
+        return $this->storageLocations;
     }
 }

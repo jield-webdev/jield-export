@@ -23,10 +23,15 @@ final class ListEntities extends Command
         $output->writeln(messages: '<info>List of all entities in index</info>');
         $entities = $this->consoleService->getEntities();
 
-        foreach ($entities as $key => $entityName) {
+        foreach ($entities as $key => $entityInfo) {
             //Try to instantiate the core and see if we have a valid entity
             $output->writeln(
-                messages: sprintf("Entity for %s (%s) is active", $key, $entityName)
+                messages: sprintf(
+                              "Entity for %s (%s) is active: (%s)",
+                              $key,
+                              key($entityInfo),
+                              implode(', ', $entityInfo)
+                          )
             );
         }
 
