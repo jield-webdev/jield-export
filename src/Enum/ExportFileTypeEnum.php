@@ -9,7 +9,7 @@ enum ExportFileTypeEnum: string
     case EXCEL = 'excel';
     case CSV = 'csv';
     case PARQUET = 'parquet';
-    case JSON = 'lb';
+    case JSON = 'json';
 
     public function toString(): string
     {
