@@ -121,11 +121,13 @@ MARKDOWN;
                 foreach ($storageLocations as $storageLocation) {
                     $columnKey = $storageLocation->getExportFileType()->getColumnKey();
 
-                    $this->handleEntity(
-                        storageLocation:   $storageLocation,
-                        columnOrJsonClass: $entityInformation[$columnKey],
-                        output:            $output
-                    );
+                    if (array_key_exists($columnKey, $entityInformation)) {
+                        $this->handleEntity(
+                            storageLocation:   $storageLocation,
+                            columnOrJsonClass: $entityInformation[$columnKey],
+                            output:            $output
+                        );
+                    }
                 }
             }
 
