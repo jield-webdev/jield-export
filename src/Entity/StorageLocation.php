@@ -6,6 +6,7 @@ namespace Jield\Export\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Jield\Export\Enum\ExportFileTypeEnum;
+use Jield\Export\Enum\TypeEnum;
 use Override;
 
 #[ORM\Table]
@@ -35,6 +36,11 @@ class StorageLocation implements StorageLocationInterface
     public function __toString(): string
     {
         return $this->name;
+    }
+
+    public function getType(): TypeEnum
+    {
+        return TypeEnum::EXPORT;
     }
 
     public function getId(): ?int
