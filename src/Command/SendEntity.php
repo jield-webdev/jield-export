@@ -38,7 +38,7 @@ final class SendEntity extends Command
                                $storageLocation->getId(),
                                $storageLocation->getName()
                            ),
-                           array: $this->consoleService->getStorageLocations()
+                           array: $this->consoleService->getStorageLocationsForExport()
                        )
         );
 
@@ -74,7 +74,7 @@ final class SendEntity extends Command
         $storageLocation = $input->getArgument(name: 'storage-location');
 
         $storageLocations = array_filter(
-            array: $this->consoleService->getStorageLocations(),
+            array: $this->consoleService->getStorageLocationsForExport(),
             callback: static fn(StorageLocationInterface $location) => (string)$location->getId(
                 ) === (string)$storageLocation || $storageLocation === 'all'
         );

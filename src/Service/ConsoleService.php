@@ -397,7 +397,7 @@ MARKDOWN;
         return $this->entities;
     }
 
-    public function getStorageLocations(): array
+    public function getStorageLocationsForExport(): array
     {
         if (null === $this->storageLocations) {
             //Find the entity which holds the storage location
@@ -409,9 +409,21 @@ MARKDOWN;
                 interface: StorageLocationInterface::class
             );
 
-            $this->storageLocations = $this->entityManager->getRepository(
+
+            $storageLocations = $this->entityManager->getRepository(
                 $storageLocationEntity
-            )->findBy(criteria: [], orderBy: ['name' => Order::Ascending->value]);
+            )->findBy(criteria: [], orderBy: [
+                'name' => Order::Ascending->value,
+            ]);
+
+            //Based on the getType() of the storage location, we filter the storage locations on the export file type
+            //This does not have to be a column but can also be derived from a local purpose or ID
+            $this->storageLocations = array_filter(
+                array: $storageLocations,
+                callback: static function (StorageLocationInterface $storageLocation) {
+                    return $storageLocation->getType()->isExport();
+                }
+            );
         }
 
         return $this->storageLocations;

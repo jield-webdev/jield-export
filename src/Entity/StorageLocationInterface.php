@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Jield\Export\Entity;
 
 use Jield\Export\Enum\ExportFileTypeEnum;
+use Jield\Export\Enum\TypeEnum;
 
 interface StorageLocationInterface
 {
@@ -17,6 +18,8 @@ interface StorageLocationInterface
     public function getFolder(): string;
 
     public function getExportFileType(): ExportFileTypeEnum;
+
+    public function getType(): TypeEnum;
 
     public function getContainer(): string;
 }
