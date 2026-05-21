@@ -30,9 +30,9 @@ abstract class AbstractEntityColumns implements ColumnsHelperInterface
     {
         return $this->entityManager->getRepository($this->entity)->findBy(
             criteria: $criteria,
-            orderBy:  [],
-            limit:    $this->chunkSize,
-            offset:   $offset
+            orderBy: [],
+            limit: $this->chunkSize,
+            offset: $offset
         );
     }
 
@@ -53,8 +53,6 @@ abstract class AbstractEntityColumns implements ColumnsHelperInterface
 
     /**
      * Default empty array.
-     *
-     * @return array<string, string>
      */
     public function getDependencies(): array
     {
